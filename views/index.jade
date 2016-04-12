@@ -1,0 +1,19 @@
+html
+  head
+    include includes/imports.jade
+  body
+    #wrapper.container
+      .panel.panel-default
+        #header.row
+          .col-md-1
+          #header-inner.col-md-10.col-xs-12
+            include includes/navbar.jade
+          .col-md-1
+        #content.row
+          .col-md-1
+          #content-inner.col-md-10.col-xs-12
+          .col-md-1
+        #footer.row
+          #footer-inner
+  script.
+    var authed = #{authed}

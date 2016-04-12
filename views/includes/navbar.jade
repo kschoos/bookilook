@@ -1,0 +1,13 @@
+nav.navbar.navbar-light.bg-faded
+  a.navbar-brand(href="javascript:showAllPolls();") Get a life... A nightlife!
+  ul.nav.navbar-nav.pull-xs-right
+    li.home-btn.nav-item
+      a.nav-link(href="javascript:showAllPolls();") Home
+    li.login-btn.nav-item
+      if authed
+        .btn-group
+          a.nav-link.dropdown-toggle(data-toggle="dropdown" aria-expanded="false" href="#") #{login}
+          .dropdown-menu
+            a.dropdown-item(href="#{loginlink}") Logout
+      else  
+        a.nav-link(href="#{loginlink}") #{login}
