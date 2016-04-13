@@ -1,10 +1,10 @@
 nav.navbar.navbar-light.bg-faded
-  a.navbar-brand(href="javascript:showAllPolls();") Get a life... A nightlife!
+  a.navbar-brand(href="javascript:showAllPolls();") Bookilook!
   ul.nav.navbar-nav.pull-xs-right
     li.home-btn.nav-item
       a.nav-link(href="javascript:showAllPolls();") Home
     li.login-btn.nav-item
-      if authed
+      if data.authed
         .btn-group
           a.nav-link.dropdown-toggle(data-toggle="dropdown" aria-expanded="false" href="#") #{login}
           .dropdown-menu

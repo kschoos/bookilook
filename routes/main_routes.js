@@ -1,25 +1,57 @@
-var mongo = require("mongodb").MongoClient;
-var DB = {};
+"use strict";
 
-mongo.connect(process.env.MONGOLAB_URI, function(err, db){
-  if(err){
-    console.log(err)
-    return;
-  }
-  console.log("Successfully connected to MongoDB");
-  DB = db;
-})
+var EmailVerification = require("../modules/emailverification.js");
 
-var Routes = function() {};
+module.exports = function (app, passport) {
 
-Routes.prototype.isAuthenticated = function(req, res, next){
-  if(req.session.passport)
+  app.get("/testmail", function (req, res) {
+    EmailVerification("rincewind1230@hotmail.com", function (err, message) {
+      if (err) throw err;
+      console.log("Successfully send message.");
+      res.render("index");
+    });
+  });
+
+  app.get("/", function (req, res) {
+    if (req.isAuthenticated()) {
+      res.render("index", { data: { authed: true, email: req.user.local.email } });
+    } else res.render("index", { data: { authed: false, email: "" } });
+  });
+
+  app.get("/login", function (req, res) {
+    res.render("index");
+  });
+
+  app.get("/profile", isLoggedIn, function (req, res) {
+    res.render("index");
+  });
+
+  app.post("/logout", function (req, res) {
+    req.logout();
+    req.session.destroy();
+
+    res.redirect("/");
+  });
+
+  app.get("/signup", function (req, res) {
+    res.render("index");
+  });
+
+  app.post("/signup", passport.authenticate("local-signup", {
+    successRedirect: "/",
+    failureRedirect: "/"
+  }));
+
+  app.post("/login", passport.authenticate("local-login", {
+    successRedirect: "/",
+    failureRedirect: "/"
+  }));
+};
+
+function isLoggedIn(req, res, next) {
+  if (req.isAuthenticated()) {
     return next();
+  }
 
   res.redirect("/");
 }
- 
-Routes.prototype.home = function(req, res){
-  res.render("index");
-}
-module.exports = new Routes();
