@@ -179,7 +179,10 @@ var AccountSettings = React.createClass({
       username: e.target[0].value,
       email: e.target[1].value,
       newpassword: e.target[2].value,
-      currentpassword: e.target[3].value
+      country: e.target[3].value,
+      city: e.target[4].value,
+      address: e.target[5].value,
+      currentpassword: e.target[6].value
     }
 
     $.ajax({
@@ -211,6 +214,8 @@ var AccountSettings = React.createClass({
         <div className="accountSettings">
           <form onSubmit={ this.updateAccount }>
             <div className="form-group">
+
+              { /* Account Stuff */ }
               <label htmlFor="username">Username</label>
               <input type="text" name="username" className="form-control" placeholder={(this.context.user.username ? this.context.user.username : "Username")}/>
               <div className={ "form-group " + this.state.emailvalidation }>
@@ -220,12 +225,24 @@ var AccountSettings = React.createClass({
               <label htmlFor="newpassword">New Password</label>
               <input type="password" className="form-control" name="newpassword"/>
               <hr/>
+
+              { /*  Personal Data */ }
+              <label htmlFor="country">Country</label>
+              <input type="text" name="country" className="form-control" placeholder={(this.context.user.country ? this.context.user.country : "Country")}/>
+
+              <label htmlFor="city">City</label>
+              <input type="text" name="city" className="form-control" placeholder={(this.context.user.city ? this.context.user.city : "City")}/>
+
+              <label htmlFor="address">Address</label>
+              <input type="text" name="address" className="form-control" placeholder={(this.context.user.address ? this.context.user.address : "Address")}/>
+
+              { /* Password verification */ }
               <div className={ "form-group " + this.state.passwordvalidation }>
                 <label className="form-control-label" htmlFor="currentpassword">Current Password</label>
                 <input type="password" className="form-control " name="currentpassword"/>
               </div>
               <hr/>
-              <button type="submit" className="btn btn-default btn-warning">Submit</button>
+              <button type="submit" className="btn btn-block btn-default btn-warning">Submit</button>
               <hr/>
               <div className={ "alert alert-" + this.state.alerttype }>{ this.state.alerttext }</div>
             </div>
@@ -259,21 +276,12 @@ var LoginForm = React.createClass({
       if(!data.email || !data.password) that.setMessage("Please provide a login and password.");
 
       $.ajax({
-        url: "/getnonce",
+        url: "/login",
         type: "post",
-        success(nonce){
-          data.cnonce = md5(Date.now());
-          data.password = md5(nonce + data.cnonce + data.password);
-          console.log("nonce: " + nonce);
-          $.ajax({
-            url: "/login",
-            type: "post",
-            data: data,
-            success(data){
-              that.setMessage(data.message);
-              that.context.checkAuth();
-            }
-          })
+        data: data,
+        success(data){
+          that.setMessage(data.message);
+          that.context.checkAuth();
         }
       })
     });

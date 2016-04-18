@@ -243,7 +243,10 @@ var AccountSettings = React.createClass({
       username: e.target[0].value,
       email: e.target[1].value,
       newpassword: e.target[2].value,
-      currentpassword: e.target[3].value
+      country: e.target[3].value,
+      city: e.target[4].value,
+      address: e.target[5].value,
+      currentpassword: e.target[6].value
     };
 
     $.ajax({
@@ -307,6 +310,24 @@ var AccountSettings = React.createClass({
             React.createElement("input", { type: "password", className: "form-control", name: "newpassword" }),
             React.createElement("hr", null),
             React.createElement(
+              "label",
+              { htmlFor: "country" },
+              "Country"
+            ),
+            React.createElement("input", { type: "text", name: "country", className: "form-control", placeholder: this.context.user.country ? this.context.user.country : "Country" }),
+            React.createElement(
+              "label",
+              { htmlFor: "city" },
+              "City"
+            ),
+            React.createElement("input", { type: "text", name: "city", className: "form-control", placeholder: this.context.user.city ? this.context.user.city : "City" }),
+            React.createElement(
+              "label",
+              { htmlFor: "address" },
+              "Address"
+            ),
+            React.createElement("input", { type: "text", name: "address", className: "form-control", placeholder: this.context.user.address ? this.context.user.address : "Address" }),
+            React.createElement(
               "div",
               { className: "form-group " + this.state.passwordvalidation },
               React.createElement(
@@ -319,7 +340,7 @@ var AccountSettings = React.createClass({
             React.createElement("hr", null),
             React.createElement(
               "button",
-              { type: "submit", className: "btn btn-default btn-warning" },
+              { type: "submit", className: "btn btn-block btn-default btn-warning" },
               "Submit"
             ),
             React.createElement("hr", null),
@@ -360,21 +381,12 @@ var LoginForm = React.createClass({
       if (!data.email || !data.password) that.setMessage("Please provide a login and password.");
 
       $.ajax({
-        url: "/getnonce",
+        url: "/login",
         type: "post",
-        success: function success(nonce) {
-          data.cnonce = md5(Date.now());
-          data.password = md5(nonce + data.cnonce + data.password);
-          console.log("nonce: " + nonce);
-          $.ajax({
-            url: "/login",
-            type: "post",
-            data: data,
-            success: function success(data) {
-              that.setMessage(data.message);
-              that.context.checkAuth();
-            }
-          });
+        data: data,
+        success: function success(data) {
+          that.setMessage(data.message);
+          that.context.checkAuth();
         }
       });
     });

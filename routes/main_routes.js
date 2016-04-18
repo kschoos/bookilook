@@ -1,7 +1,6 @@
 "use strict";
 
 var User = require("../models/users.js");
-var Nonce = require("../models/nonces.js");
 var EmailVerification = require("../modules/emailverification.js");
 
 module.exports = function (app, passport) {
@@ -30,6 +29,10 @@ module.exports = function (app, passport) {
 
         user.local.email = req.body.email && req.body.email.match(/\w*@\w*.\w*/) ? req.body.email : user.local.email;
         user.local.EMAIL = req.body.email && req.body.email.match(/\w*@\w*.\w*/) ? req.body.email.toUpperCase() : user.local.EMAIL;
+
+        user.local.country = req.body.country && req.body.country ? req.body.country : user.local.country;
+        user.local.city = req.body.city && req.body.city ? req.body.city : user.local.city;
+        user.local.address = req.body.address && req.body.address ? req.body.address : user.local.address;
 
         user.local.password = req.body.newpassword ? user.generateHash(req.body.newpassword) : req.user.local.password;
 
@@ -85,23 +88,6 @@ module.exports = function (app, passport) {
     })(req, res, next);
   });
 
-  app.post("/getnonce", function (req, res, next) {
-    Nonce.findOne({ userID: req.sessionID }, function (err, nonce) {
-      if (nonce) {
-        nonce.nonce = nonce.generateNonce(req.sessionID);
-      } else {
-        nonce = new Nonce();
-        nonce.userID = req.sessionID;
-        nonce.nonce = nonce.generateNonce(req.sessionID);
-      }
-
-      nonce.save(function (err) {
-        if (err) return next(err);
-        res.end(nonce.nonce);
-      });
-    });
-  });
-
   app.post("/login", function (req, res, next) {
     passport.authenticate("local-login", function (err, user, info) {
       if (err) return next(err);
@@ -119,7 +105,13 @@ module.exports = function (app, passport) {
   app.post("/checkAuth", function (req, res) {
     if (req.isAuthenticated()) {
       User.findById(req.user._id, function (err, user) {
-        res.send({ authed: true, user: { username: user.local.username, email: user.local.email } });
+        res.send({ authed: true, user: {
+            username: user.local.username,
+            email: user.local.email,
+            address: user.local.address,
+            country: user.local.country,
+            city: user.local.city
+          } });
       });
     } else res.send({ authed: false });
   });
