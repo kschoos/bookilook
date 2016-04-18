@@ -3,16 +3,5 @@ html
     include includes/imports.jade
   body
     #wrapper.container
-      .panel.panel-default
-        #header.row
-          .col-md-1
-          #header-inner.col-md-11.col-xs-12
-            include includes/navbar.jade
-        #content.row
-          .col-md-1
-          #content-inner.col-md-8.col-xs-10
-          #sidebar.col-md-3.col-xs-2
-        #footer.row
-          #footer-inner
   script.
     var serverData = !{ JSON.stringify(data) }

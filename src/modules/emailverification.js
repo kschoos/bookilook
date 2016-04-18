@@ -1,21 +1,36 @@
 var EmailTemplate = require("email-templates").EmailTemplate;
 var path = require("path");
-var email = require("emailjs");
-var sendmail = require("sendmail")();
+var nodemailer = require("nodemailer");
+
+var smtpconfig = {
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  auth: {
+    user: process.env.EMAIL_ADDR,
+    pass: process.env.EMAIL_PASS
+  }
+}
+
+var transporter = nodemailer.createTransport(smtpconfig);
 
 var emailConfiguration = {
-  from: "confirmyour@email.com", //Can be anything!
-  subject: "Somethingsomething email verification",
-  content: "This is inner text. Please click link for thingies. Yay.",
+  from: "donotrespond@skusku.org", 
+  subject: "Bookilook email verification",
 };
 
-var templateDir = path.join(__dirname, "templates", "verification-email");
+var templateDir = "templates/verification-email";
 var mail = new EmailTemplate(templateDir);
 
-module.exports = (TO, callback) =>{  // TO can either be a comma seperated list of emails as a string, or an array, or a single email adress.
+module.exports = (TO, hash, callback) =>{  // TO can either be a comma seperated list of emails as a string, or an array, or a single email adress.
   if(Array.isArray(TO)) TO = TO.join(",");
+
   emailConfiguration.to = TO;
-  sendmail(emailConfiguration, callback);
+  mail.render({hash: hash}, (err, result) =>{
+    if(err) throw err;
+    console.log(result);
+    emailConfiguration.html = result.html;
+    transporter.sendMail(emailConfiguration, callback);
+  })
 }
 
 
