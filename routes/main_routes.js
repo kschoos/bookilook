@@ -37,8 +37,8 @@ module.exports = function (app, passport) {
   app.post("/searchBooks/:search", function (req, res, next) {
     return BookSearch.searchBooks(req.params.search, function (err, books, msg) {
       if (err) return next(err);
+      console.log(msg);
       if (!books) {
-        console.log(msg);
         res.send([]);
       }
       res.send(books);

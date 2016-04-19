@@ -73,10 +73,17 @@ var App = React.createClass({
 var Header = React.createClass({
   render(){
     return(
-      <div id="header" className="row">
-        <div className="col-md-1"></div>
-        <div className="col-md-11 col-xs-12">
-          <Navbar/> 
+      <div>
+        <div id="header" className="row">
+          <div className="col-md-1"></div>
+          <div className="col-md-11 col-xs-12">
+            <Navbar/> 
+          </div>
+        </div>
+        <div className="row">
+          <div className="col-xs-12 hidden-md-up">
+            <SideBar/>
+          </div>
         </div>
       </div>
     )
@@ -93,7 +100,7 @@ var Body = React.createClass({
     return(
       <div id="content" className="row">
         <div className="col-md-1"></div>
-        <div id="content-inner" className="col-md-8 col-xs-10">
+        <div id="content-inner" className="col-md-8 col-sm-11">
           <SignupModal/> 
           {(()=>{
             var page = this.props.page;
@@ -114,7 +121,7 @@ var Body = React.createClass({
           })()
           }
         </div>
-        <div id="sidebar" className="col-md-3 col-xs-2">
+        <div id="sidebar" className="col-md-3 hidden-sm-down">
           <SideBar/> 
         </div>
       </div>
@@ -511,10 +518,10 @@ var Book = React.createClass({
     return(
       <div className="book card" style={ this.state.bookstyle } onClick={ this.openBook }>
         <a href="#" onClick={ this.openBook }>
-          <img className="img-responsive" src={ this.props.data.thumbnail } alt={ this.props.data.title } />
+          <img className="img-fluid center-block" src={ this.props.data.thumbnail } alt={ this.props.data.title } />
         </a>
         <div className="card-block">
-          <h5 className="card-title">{ this.props.data.title }</h5>
+          <h4 className="card-title">{ this.props.data.title }</h4>
         </div>
       </div>
     )

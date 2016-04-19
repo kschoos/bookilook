@@ -37,8 +37,8 @@ module.exports = function(app, passport){
   // Book search for generally searching for books (e.g. using the upper right search bar) 
   app.post("/searchBooks/:search", (req, res, next) => BookSearch.searchBooks(req.params.search, (err, books, msg) => {
     if(err) return next(err);
+    console.log(msg);
     if(!books){
-      console.log(msg);
       res.send([]);
     }
     res.send(books);

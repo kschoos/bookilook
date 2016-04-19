@@ -1,0 +1,47 @@
+@import url(https://fonts.googleapis.com/css?family=Fugaz+One)
+$screen-xs:   480px
+$screen-sm:   768px
+$screen-md:   992px
+$screen-lg:   1200px
+
+body
+  font-family: "Fugaz One" !important
+
+
+.loading-screen
+  width: 100%
+  padding-top: 50px
+  text-align: center 
+
+
+.book
+  text-align: center
+  padding: 10px
+  box-shadow: 0 3px 5px steelblue
+  transition: 0.2s
+
+
+.book img
+  border: 3px double lightgrey
+
+
+.book:hover
+  box-shadow: 0 5px 5px steelblue
+
+
+#content
+  margin-top: 50px
+
+
+.book h4 
+  font-size: 21px
+
+@media (max-width: $screen-lg)
+  .book h4
+    font-size: 19px
+
+@media (max-width: $screen-md)
+  .book h4 
+    font-size: 15px
+  
+

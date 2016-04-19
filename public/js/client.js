@@ -75,12 +75,25 @@ var Header = React.createClass({
   render: function render() {
     return React.createElement(
       "div",
-      { id: "header", className: "row" },
-      React.createElement("div", { className: "col-md-1" }),
+      null,
       React.createElement(
         "div",
-        { className: "col-md-11 col-xs-12" },
-        React.createElement(Navbar, null)
+        { id: "header", className: "row" },
+        React.createElement("div", { className: "col-md-1" }),
+        React.createElement(
+          "div",
+          { className: "col-md-11 col-xs-12" },
+          React.createElement(Navbar, null)
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-12 hidden-md-up" },
+          React.createElement(SideBar, null)
+        )
       )
     );
   }
@@ -102,7 +115,7 @@ var Body = React.createClass({
       React.createElement("div", { className: "col-md-1" }),
       React.createElement(
         "div",
-        { id: "content-inner", className: "col-md-8 col-xs-10" },
+        { id: "content-inner", className: "col-md-8 col-sm-11" },
         React.createElement(SignupModal, null),
         function () {
           var page = _this.props.page;
@@ -124,7 +137,7 @@ var Body = React.createClass({
       ),
       React.createElement(
         "div",
-        { id: "sidebar", className: "col-md-3 col-xs-2" },
+        { id: "sidebar", className: "col-md-3 hidden-sm-down" },
         React.createElement(SideBar, null)
       )
     );
@@ -686,13 +699,13 @@ var Book = React.createClass({
       React.createElement(
         "a",
         { href: "#", onClick: this.openBook },
-        React.createElement("img", { className: "img-responsive", src: this.props.data.thumbnail, alt: this.props.data.title })
+        React.createElement("img", { className: "img-fluid center-block", src: this.props.data.thumbnail, alt: this.props.data.title })
       ),
       React.createElement(
         "div",
         { className: "card-block" },
         React.createElement(
-          "h5",
+          "h4",
           { className: "card-title" },
           this.props.data.title
         )

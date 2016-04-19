@@ -57,6 +57,18 @@ BookSearch.prototype.getInfo = (bookIDs, callback) => {
 
 // Generic book search. queryString can be many things like title, genre, author, etc.
 BookSearch.prototype.searchBooks = (queryString, callback) => {
+  searchCache(queryString, callback);
+}
+
+function searchCache(queryString, callback){
+  SearchResult.findOne({query: queryString}, (err, searchresult) => {
+    if(err) return callback(err);
+    if(!searchresult) return searchOnline(queryString, callback);
+    callback(null, searchresult.results, "We got the data from our database");
+  })
+}
+
+function searchOnline(queryString, callback){
   request(searchQueryURL + queryString + "&" + books_key, (err, response, body) => {
     body = JSON.parse(body);
     if(body.totalItems == 0) return callback(null, false, "No books were found"); // In case no books were found return false and a Message.
@@ -69,12 +81,17 @@ BookSearch.prototype.searchBooks = (queryString, callback) => {
       newBook.authors = book.volumeInfo.authors || "";
       newBook.description = book.description || "";
       newBook.thumbnail = book.volumeInfo.imageLinks && book.volumeInfo.imageLinks.thumbnail || "https://books.google.at/googlebooks/images/no_cover_thumb.gif";
-      if(!book.volumeInfo.imageLinks) console.log(book);
       return newBook;
     })
-    return callback(null, books, "Everything as expected.");
+
+    var newSearchResult = new SearchResult();
+    newSearchResult.query = queryString;
+    newSearchResult.results = books;
+    newSearchResult.save((err)=>{
+      if(err) return callback(err);
+      callback(null, books, "We got brandnew data");
+    })
   })
 }
-
 
 module.exports = new BookSearch();
