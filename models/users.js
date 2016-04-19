@@ -13,10 +13,10 @@ var User = mongoose.Schema({
     password: String,
     verificationHash: String,
     verified: Boolean,
+    books: Array,
     createdAt: {
       type: Date,
-      expires: 900,
-      default: Date.now
+      expires: 900
     }
   }
 })

@@ -3,3 +3,28 @@
 body{
   font-family: "Fugaz One" !important;
 }
+
+.loading-screen{
+  width: 100%;
+  padding-top: 50px;
+  text-align: center; 
+}
+
+.book{
+  text-align: center;
+  padding: 10px;
+  box-shadow: 0 3px 5px steelblue;
+  transition: 0.2s;
+}
+
+.book img{
+  border: 3px double lightgrey;
+}
+
+.book:hover{
+  box-shadow: 0 5px 5px steelblue;
+}
+
+#content{
+  margin-top: 50px;
+}

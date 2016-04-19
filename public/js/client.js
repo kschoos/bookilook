@@ -4,6 +4,12 @@ $(document).ready(function () {
   ReactDOM.render(React.createElement(App, null), document.getElementById("wrapper"));
 });
 
+// App : Ties everything together.
+// -----------------------------------------------
+// App
+// - Header
+// - Body
+
 var App = React.createClass({
   displayName: "App",
 
@@ -23,13 +29,17 @@ var App = React.createClass({
   },
   getInitialState: function getInitialState() {
     return {
-      currentPage: "home",
       authed: false,
+      currentPage: "",
+      bookdata: {},
       user: {}
     };
   },
   componentWillMount: function componentWillMount() {
     this.checkAuth();
+  },
+  setPage: function setPage(page, bookdata) {
+    this.setState({ currentPage: page, bookdata: bookdata });
   },
   checkAuth: function checkAuth() {
     var that = this;
@@ -42,18 +52,23 @@ var App = React.createClass({
       }
     });
   },
-  setPage: function setPage(page) {
-    this.setState({ currentPage: page });
-  },
   render: function render() {
     return React.createElement(
       "div",
       { className: "panel panel-default app" },
       React.createElement(Header, null),
-      React.createElement(Body, { page: this.state.currentPage })
+      React.createElement(Body, { page: this.state.currentPage, singleBookData: this.state.bookdata })
     );
   }
 });
+
+// -----------------------------------------------
+// The parts of the app.
+// -----------------------------------------------
+
+// Header
+// -----------------------------------------------
+// - Navbar
 
 var Header = React.createClass({
   displayName: "Header",
@@ -71,6 +86,11 @@ var Header = React.createClass({
   }
 });
 
+// Body - Modified by props.page
+// -----------------------------------------------
+// - Main Content
+// - Sidebar
+
 var Body = React.createClass({
   displayName: "Body",
   render: function render() {
@@ -85,8 +105,20 @@ var Body = React.createClass({
         { id: "content-inner", className: "col-md-8 col-xs-10" },
         React.createElement(SignupModal, null),
         function () {
-          if (_this.props.page == "AccountSettings") {
-            return React.createElement(AccountSettings, null);
+          var page = _this.props.page;
+          switch (true) {
+            case /AccountSettings/.test(page):
+              return React.createElement(AccountSettings, null);
+              break;
+            case /myBooks/.test(page):
+              return React.createElement(BookShelf, { books: "myBooks" });
+              break;
+            case /searchBooks\/.*/.test(page):
+              return React.createElement(BookShelf, { books: _this.props.page });
+              break;
+            case /^Book$/.test(page):
+              return React.createElement(BookPage, { data: _this.props.singleBookData });
+              break;
           }
         }()
       ),
@@ -98,6 +130,11 @@ var Body = React.createClass({
     );
   }
 });
+
+// Sidebar
+// -----------------------------------------------
+// - * Logout
+// - * LoginForm
 
 var SideBar = React.createClass({
   displayName: "SideBar",
@@ -119,6 +156,10 @@ var SideBar = React.createClass({
     );
   }
 });
+
+// Navbar
+// -----------------------------------------------
+// The upper navigation bar - standard bootstrap navbar.
 
 var Navbar = React.createClass({
   displayName: "Navbar",
@@ -146,17 +187,31 @@ var Navbar = React.createClass({
       )
     );
   }
-});;
+});
+
+// SearchBar
+// -----------------------------------------------
+// The upper right search bar - search for books.
+// POSTS: /search
+// DATA: booksearch ( search query )
 
 var SearchBar = React.createClass({
   displayName: "SearchBar",
+
+  contextTypes: {
+    setPage: React.PropTypes.func
+  },
+  search: function search(e) {
+    e.preventDefault();
+    this.context.setPage("searchBooks/" + e.target[0].value);
+  },
   render: function render() {
     return React.createElement(
       "div",
       { className: "search-bar" },
       React.createElement(
         "form",
-        { action: "/search", method: "post" },
+        { onSubmit: this.search },
         React.createElement(
           "div",
           { className: "form-group" },
@@ -177,6 +232,11 @@ var SearchBar = React.createClass({
   }
 });
 
+// Logout
+// -----------------------------------------------
+// Username and logout button shown when logged in.
+// Uses context data to show user data.
+
 var Logout = React.createClass({
   displayName: "Logout",
 
@@ -187,6 +247,9 @@ var Logout = React.createClass({
   },
   showUser: function showUser() {
     this.context.setPage("AccountSettings");
+  },
+  showMyBooks: function showMyBooks() {
+    this.context.setPage("myBooks");
   },
   render: function render() {
     return React.createElement(
@@ -215,12 +278,19 @@ var Logout = React.createClass({
       React.createElement("hr", null),
       React.createElement(
         "button",
-        { className: "btn btn-default btn-block" },
+        { className: "btn btn-default btn-block", onClick: this.showMyBooks },
         "My Books"
       )
     );
   }
 });
+
+// AccountSettings
+// -----------------------------------------------
+// Displayed in Main Content. Shows user information and enables the user to change it
+// POST: /updateAccount ( updates the account with provided info )
+// DATA: provided user information ( (username || email || newpassword || country || city ) && currentpassword )
+// requires password verification
 
 var AccountSettings = React.createClass({
   displayName: "AccountSettings",
@@ -356,6 +426,12 @@ var AccountSettings = React.createClass({
   }
 });
 
+//  LoginForm
+// -----------------------------------------------
+// Used to log in with your credentials
+// POST: /login
+// DATA: (email || username) && password
+
 var LoginForm = React.createClass({
   displayName: "LoginForm",
   getInitialState: function getInitialState() {
@@ -452,6 +528,12 @@ var LoginForm = React.createClass({
   }
 });
 
+// SignupModal
+// -----------------------------------------------
+// - SignupForm
+//
+// Modal that pops up when you click the Signup link
+
 var SignupModal = React.createClass({
   displayName: "SignupModal",
   getInitialState: function getInitialState() {
@@ -511,6 +593,12 @@ var SignupModal = React.createClass({
   }
 });
 
+//  SignupForm
+// -----------------------------------------------
+// Used to sign up with the site.
+// POST: /signup
+// DATA: email && password
+
 var SignupForm = React.createClass({
   displayName: "SignupForm",
   componentDidMount: function componentDidMount() {
@@ -566,6 +654,120 @@ var SignupForm = React.createClass({
           React.createElement("input", { type: "password", className: "form-control", name: "password" })
         ),
         React.createElement("input", { type: "submit", className: "btn btn-default btn-block", value: "Sign up!" })
+      )
+    );
+  }
+});
+
+// Book
+// -----------------------------------------------
+// Self explanatory eh?
+
+var Book = React.createClass({
+  displayName: "Book",
+
+  contextTypes: {
+    setPage: React.PropTypes.func
+  },
+  getInitialState: function getInitialState() {
+    return {
+      open: false,
+      bookstyle: {}
+    };
+  },
+  openBook: function openBook() {
+    this.context.setPage("Book", this.props.data);
+    return false;
+  },
+  render: function render() {
+    return React.createElement(
+      "div",
+      { className: "book card", style: this.state.bookstyle, onClick: this.openBook },
+      React.createElement(
+        "a",
+        { href: "#", onClick: this.openBook },
+        React.createElement("img", { className: "img-responsive", src: this.props.data.thumbnail, alt: this.props.data.title })
+      ),
+      React.createElement(
+        "div",
+        { className: "card-block" },
+        React.createElement(
+          "h5",
+          { className: "card-title" },
+          this.props.data.title
+        )
+      )
+    );
+  }
+});
+
+// BookShelf
+// -----------------------------------------------
+// Shows the queried books
+
+var BookShelf = React.createClass({
+  displayName: "BookShelf",
+  getInitialState: function getInitialState() {
+    return {
+      loaded: false,
+      books: []
+    };
+  },
+  componentWillMount: function componentWillMount() {
+    this.getBooks(this.props.books);
+  },
+  componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+    this.getBooks(nextProps.books);
+    this.setState({ loaded: false });
+  },
+  getBooks: function getBooks(route) {
+    var that = this;
+
+    $.ajax({
+      url: "/" + route,
+      type: "post",
+      success: function success(books) {
+        that.setState({ loaded: true, books: books });
+      }
+    });
+  },
+  render: function render() {
+    if (!this.state.loaded) return React.createElement(
+      "div",
+      { className: "loading-screen" },
+      React.createElement("i", { className: "fa fa-cog fa-spin fa-3x fa-fw", "aria-hidden": "true" }),
+      React.createElement(
+        "span",
+        { className: "sr-only" },
+        "Loading..."
+      )
+    );
+
+    return React.createElement(
+      "div",
+      { id: "book-shelf", className: "book-shelf card-columns" },
+      this.state.books.map(function (book, i) {
+        return React.createElement(Book, { data: book, key: i });
+      })
+    );
+  }
+});
+
+// BookPage
+// -----------------------------------------------
+//
+
+var BookPage = React.createClass({
+  displayName: "BookPage",
+  render: function render() {
+    return React.createElement(
+      "div",
+      { className: "book-page" },
+      React.createElement("img", { src: this.props.data.thumbnail }),
+      React.createElement(
+        "div",
+        null,
+        "This is some text."
       )
     );
   }

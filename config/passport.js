@@ -33,6 +33,8 @@ module.exports = function (passport) {
           newUser.local.EMAIL = email.toUpperCase();
           newUser.local.password = newUser.generateHash(password);
           newUser.local.verified = false;
+          newUser.local.createdAt = Date.now(); // We have to set it here in stead of setting a default. This prevents it from being refreshed when saving the User again later.
+
           var hash = Math.random().toString(36).substring(7);
           newUser.local.verificationHash = hash;
           EmailVerification(email, hash);

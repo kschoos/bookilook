@@ -5,6 +5,13 @@ $(document).ready(function(){
   );
 })
 
+
+// App : Ties everything together.
+// -----------------------------------------------
+// App
+// - Header
+// - Body
+
 var App = React.createClass({
   childContextTypes:{
     user: React.PropTypes.object,
@@ -22,13 +29,17 @@ var App = React.createClass({
   },
   getInitialState(){
     return{
-      currentPage: "home",
       authed: false,
+      currentPage: "",
+      bookdata: {},
       user: {}
     }
   },
   componentWillMount(){
     this.checkAuth();
+  },
+  setPage(page, bookdata){
+    this.setState({currentPage: page, bookdata: bookdata}) 
   },
   checkAuth(){
     var that = this;
@@ -41,18 +52,23 @@ var App = React.createClass({
       }
     })
   },
-  setPage(page){
-    this.setState({currentPage: page});
-  },
   render(){
     return(
       <div className="panel panel-default app">
         <Header/>
-        <Body page={ this.state.currentPage }/>
+        <Body page={ this.state.currentPage } singleBookData={this.state.bookdata} />
       </div>
     )
   }
 })
+
+// -----------------------------------------------
+// The parts of the app.
+// -----------------------------------------------
+
+// Header 
+// -----------------------------------------------
+// - Navbar 
 
 var Header = React.createClass({
   render(){
@@ -67,6 +83,11 @@ var Header = React.createClass({
   }
 })
 
+// Body - Modified by props.page
+// -----------------------------------------------
+// - Main Content
+// - Sidebar
+
 var Body = React.createClass({
   render(){
     return(
@@ -75,8 +96,20 @@ var Body = React.createClass({
         <div id="content-inner" className="col-md-8 col-xs-10">
           <SignupModal/> 
           {(()=>{
-            if(this.props.page == "AccountSettings"){
-              return <AccountSettings/>
+            var page = this.props.page;
+            switch(true){
+              case (/AccountSettings/).test(page):
+                  return <AccountSettings/>
+                break;
+              case (/myBooks/).test(page):
+                  return <BookShelf books="myBooks"/>
+                break;
+              case (/searchBooks\/.*/).test(page):
+                  return <BookShelf books={ this.props.page }/>
+                break;  
+              case (/^Book$/).test(page):
+                  return <BookPage data={ this.props.singleBookData }/>
+                break;
             }
           })()
           }
@@ -88,6 +121,11 @@ var Body = React.createClass({
     )
   }
 })
+
+// Sidebar
+// -----------------------------------------------
+// - * Logout
+// - * LoginForm
 
 var SideBar = React.createClass({
   contextTypes: {
@@ -108,6 +146,11 @@ var SideBar = React.createClass({
   }
 })
 
+
+// Navbar
+// -----------------------------------------------
+// The upper navigation bar - standard bootstrap navbar.
+
 var Navbar = React.createClass({
   render(){
     return(
@@ -119,13 +162,27 @@ var Navbar = React.createClass({
       </nav>
     )
   }
-});;
+});
+
+// SearchBar
+// -----------------------------------------------
+// The upper right search bar - search for books.
+// POSTS: /search
+// DATA: booksearch ( search query )
+
 
 var SearchBar = React.createClass({
+  contextTypes:{
+    setPage: React.PropTypes.func 
+  },
+  search(e){
+    e.preventDefault();
+    this.context.setPage("searchBooks/"+e.target[0].value);
+  },
   render(){
     return(
       <div className="search-bar">
-        <form action="/search" method="post">
+        <form onSubmit={ this.search }>
           <div className="form-group">
             <label>Booksearch</label>
             <input type="text" className="form-control" name="booksearch"/>
@@ -137,6 +194,11 @@ var SearchBar = React.createClass({
   }
 }) 
 
+// Logout
+// -----------------------------------------------
+// Username and logout button shown when logged in.
+// Uses context data to show user data.
+
 var Logout = React.createClass({
   contextTypes: {
     authed: React.PropTypes.bool,
@@ -146,6 +208,9 @@ var Logout = React.createClass({
   showUser(){
     this.context.setPage("AccountSettings");
   },
+  showMyBooks(){
+    this.context.setPage("myBooks");
+  },
   render(){
     return(
       <div className="logout">
@@ -154,11 +219,18 @@ var Logout = React.createClass({
           <button className="btn btn-warning btn-block" type="submit">Logout...</button>
         </form>
         <hr/>
-        <button className="btn btn-default btn-block">My Books</button>
+        <button className="btn btn-default btn-block" onClick={ this.showMyBooks }>My Books</button>
       </div> 
     )
   }
 })
+
+// AccountSettings
+// -----------------------------------------------
+// Displayed in Main Content. Shows user information and enables the user to change it
+// POST: /updateAccount ( updates the account with provided info )
+// DATA: provided user information ( (username || email || newpassword || country || city ) && currentpassword )
+// requires password verification
 
 var AccountSettings = React.createClass({
   contextTypes:{
@@ -253,6 +325,12 @@ var AccountSettings = React.createClass({
   }
 })
 
+//  LoginForm
+// -----------------------------------------------
+// Used to log in with your credentials
+// POST: /login
+// DATA: (email || username) && password
+
 var LoginForm = React.createClass({
   getInitialState(){
     return{
@@ -317,6 +395,13 @@ var LoginForm = React.createClass({
   }
 })
 
+// SignupModal
+// -----------------------------------------------
+// - SignupForm
+//
+// Modal that pops up when you click the Signup link
+
+
 var SignupModal = React.createClass({
   getInitialState(){
     return{
@@ -351,6 +436,13 @@ var SignupModal = React.createClass({
     )
   }
 })
+
+//  SignupForm
+// -----------------------------------------------
+// Used to sign up with the site.
+// POST: /signup
+// DATA: email && password
+
 
 var SignupForm = React.createClass({
   componentDidMount(){
@@ -392,6 +484,104 @@ var SignupForm = React.createClass({
           </div>
           <input type="submit" className="btn btn-default btn-block" value="Sign up!"/>
         </form>
+      </div>
+    )
+  }
+})
+
+// Book
+// -----------------------------------------------
+// Self explanatory eh?
+
+var Book = React.createClass({
+  contextTypes:{
+    setPage: React.PropTypes.func
+  },
+  getInitialState(){
+    return {
+      open: false,
+      bookstyle: {}
+    } 
+  },
+  openBook(){
+    this.context.setPage("Book", this.props.data);
+    return false;
+  },
+  render(){
+    return(
+      <div className="book card" style={ this.state.bookstyle } onClick={ this.openBook }>
+        <a href="#" onClick={ this.openBook }>
+          <img className="img-responsive" src={ this.props.data.thumbnail } alt={ this.props.data.title } />
+        </a>
+        <div className="card-block">
+          <h5 className="card-title">{ this.props.data.title }</h5>
+        </div>
+      </div>
+    )
+  }
+})
+
+// BookShelf
+// -----------------------------------------------
+// Shows the queried books
+
+var BookShelf = React.createClass({
+  getInitialState(){
+    return{
+      loaded: false,
+      books: []
+    }
+  },
+  componentWillMount(){
+    this.getBooks(this.props.books);
+  },
+  componentWillReceiveProps(nextProps){
+    this.getBooks(nextProps.books);
+    this.setState({loaded: false});
+  },
+  getBooks(route){
+    var that = this;
+
+    $.ajax({
+      url: "/"+route,
+      type: "post",
+      success(books){
+        that.setState({loaded: true, books: books});
+      }
+    })  
+  },
+  render(){
+    if( !this.state.loaded )
+      return(
+        <div className="loading-screen">
+          <i className="fa fa-cog fa-spin fa-3x fa-fw" aria-hidden="true"></i>
+          <span className="sr-only">Loading...</span>
+        </div>
+      )
+
+    return(
+      <div id="book-shelf" className="book-shelf card-columns">
+      {
+        this.state.books.map((book, i) => {
+          return <Book data={ book } key={ i }/>
+        })
+      }
+      </div>
+    )
+  }
+})
+
+
+// BookPage
+// -----------------------------------------------
+//
+
+var BookPage = React.createClass({
+  render(){
+    return(
+      <div className="book-page">
+        <img src={ this.props.data.thumbnail}/>
+        <div>This is some text.</div>
       </div>
     )
   }
