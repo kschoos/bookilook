@@ -1,6 +1,6 @@
 var mongoose = require("mongoose");
 
-var Book = mongoose.Schema({
+var Trade = mongoose.Schema({
   id: String,
   title: String,
   subtitle: String,
@@ -8,5 +8,3 @@ var Book = mongoose.Schema({
   description: String,
   thumbnail: String
 })
-
-module.exports = { Book: mongoose.model("Book", Book), Trade: mongoose.model("Trade", Book)}

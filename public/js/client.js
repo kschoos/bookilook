@@ -4,6 +4,8 @@ $(document).ready(function () {
   ReactDOM.render(React.createElement(App, null), document.getElementById("wrapper"));
 });
 
+var Collapse = ReactBootstrap.Collapse;
+
 // App : Ties everything together.
 // -----------------------------------------------
 // App
@@ -137,6 +139,7 @@ var Body = React.createClass({
               return React.createElement(BookShelf, { books: "myBooks" });
               break;
             case /searchBooks\/.*/.test(page):
+            case /searchTrades\/.*/.test(page):
               return React.createElement(BookShelf, { books: _this.props.page });
               break;
             case /^Book$/.test(page):
@@ -210,8 +213,12 @@ var SearchBar = React.createClass({
   displayName: "SearchBar",
   getInitialState: function getInitialState() {
     return {
-      searchStatus: "All"
+      searchStatus: "All",
+      collapseState: true
     };
+  },
+  componentDidMount: function componentDidMount() {
+    $("#booksearch-form").collapse({ toggle: false });
   },
 
   contextTypes: {
@@ -219,10 +226,17 @@ var SearchBar = React.createClass({
   },
   search: function search(e) {
     e.preventDefault();
-    this.context.setPage("searchBooks/" + e.target[0].value);
+    switch (this.state.searchStatus) {
+      case "All":
+        this.context.setPage("searchBooks/" + e.target[0].value);
+        break;
+      case "Trade":
+        this.context.setPage("searchTrades/");
+        break;
+    }
   },
   toggleSearch: function toggleSearch(value) {
-    if (value) this.setState({ searchStatus: "All" });else this.setState({ searchStatus: "Trade" });
+    this.setState({ collapseState: value });
   },
   render: function render() {
     return React.createElement(
@@ -232,20 +246,24 @@ var SearchBar = React.createClass({
         "form",
         { onSubmit: this.search },
         React.createElement(
-          "div",
-          { className: "form-group" },
+          Collapse,
+          { "in": this.state.collapseState },
           React.createElement(
-            "label",
-            null,
-            "Booksearch"
-          ),
-          React.createElement("input", { type: "text", className: "form-control", name: "booksearch" })
+            "div",
+            { className: "form-group collapse", id: "booksearch-form" },
+            React.createElement(
+              "label",
+              null,
+              "Booksearch"
+            ),
+            React.createElement("input", { type: "text", className: "form-control", name: "booksearch" })
+          )
         ),
         React.createElement(SliderButton, { toggle: this.toggleSearch, right: "All", left: "Trade", size: 30, gap: 2 }),
         React.createElement(
           "button",
           { className: "btn btn-default btn-block search-button", type: "submit" },
-          "Search!"
+          this.state.collapseState ? "Search!" : "Browse..."
         )
       )
     );

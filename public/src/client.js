@@ -5,6 +5,7 @@ $(document).ready(function(){
   );
 })
 
+var Collapse = ReactBootstrap.Collapse;
 
 // App : Ties everything together.
 // -----------------------------------------------
@@ -122,8 +123,9 @@ var Body = React.createClass({
                   return <BookShelf books="myBooks"/>
                 break;
               case (/searchBooks\/.*/).test(page):
+              case (/searchTrades\/.*/).test(page):
                   return <BookShelf books={ this.props.page }/>
-                break;  
+                break;
               case (/^Book$/).test(page):
                   return <BookPage data={ this.props.singleBookData } lastSearch={ this.state.lastSearch }/>
                 break;
@@ -190,30 +192,42 @@ var Navbar = React.createClass({
 var SearchBar = React.createClass({
   getInitialState(){
     return{
-      searchStatus: "All" 
+      searchStatus: "All",
+      collapseState: true
     }
+  },
+  componentDidMount(){
+    $("#booksearch-form").collapse({toggle: false});
   },
   contextTypes:{
     setPage: React.PropTypes.func 
   },
   search(e){
     e.preventDefault();
-    this.context.setPage("searchBooks/"+e.target[0].value);
+    switch(this.state.searchStatus){
+      case "All":
+        this.context.setPage("searchBooks/"+e.target[0].value);
+        break;
+      case "Trade":
+        this.context.setPage("searchTrades/");
+        break;
+    }
   },
   toggleSearch(value){
-    if(value) this.setState({searchStatus: "All"})
-    else this.setState({searchStatus: "Trade"})
+    this.setState({collapseState: value});
   },
   render(){
     return(
       <div className="search-bar">
         <form onSubmit={ this.search }>
-          <div className="form-group">
-            <label>Booksearch</label>
-            <input type="text" className="form-control" name="booksearch"/>
-          </div>
-            <SliderButton toggle={ this.toggleSearch } right="All" left="Trade" size={ 30 } gap={ 2 }/>
-          <button className="btn btn-default btn-block search-button" type="submit">Search!</button>
+          <Collapse in={ this.state.collapseState }>
+            <div className="form-group collapse" id="booksearch-form">
+              <label>Booksearch</label>
+              <input type="text" className="form-control" name="booksearch"/>
+            </div>
+          </Collapse>
+          <SliderButton toggle={ this.toggleSearch } right="All" left="Trade" size={ 30 } gap={ 2 }/>
+          <button className="btn btn-default btn-block search-button" type="submit">{ (this.state.collapseState ? "Search!" : "Browse...") }</button>
         </form> 
       </div>
     )

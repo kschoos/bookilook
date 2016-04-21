@@ -1,7 +1,8 @@
 "use strict";
 
 var User = require("../models/users.js");
-var Book = require("../models/books.js");
+var Book = require("../models/books.js").Book;
+var Trade = require("../models/books.js").Trade;
 var EmailVerification = require("../modules/emailverification.js");
 var BookSearch = require("../modules/books.js");
 
@@ -35,7 +36,14 @@ module.exports = function (app, passport) {
 
   // Book search for generally searching for books (e.g. using the upper right search bar)
   app.post("/searchBooks/:search", function (req, res, next) {
-    return BookSearch.searchBooks(req.params.search, function (err, books, msg) {
+    if (!req.params.search) {
+      console.log("We do this");
+      res.end();
+    }
+    console.log(req.params.search);
+    abcd;
+
+    BookSearch.searchBooks(req.params.search, function (err, books, msg) {
       if (err) return next(err);
       console.log(msg);
       if (!books) {
@@ -55,6 +63,13 @@ module.exports = function (app, passport) {
         });
         return res.send(books);
       });
+    });
+  });
+
+  app.post("/searchTrades/", function (req, res, next) {
+    Trade.find({}, function (err, trades) {
+      if (err) return next(err);
+      res.send(trades);
     });
   });
 

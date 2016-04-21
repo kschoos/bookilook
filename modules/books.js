@@ -2,7 +2,7 @@ var request = require("request");
 var searchQueryURL = "https://www.googleapis.com/books/v1/volumes?q=";
 var volumeQueryURL = "https://www.googleapis.com/books/v1/volumes/";
 var books_key = "key="+process.env.BOOKS_API_KEY;
-var Book = require("../models/books.js");
+var Book = require("../models/books.js").Book;
 var SearchResult = require("../models/searchresults.js");
 
 
