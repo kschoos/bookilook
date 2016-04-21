@@ -1,11 +1,11 @@
-@import url(https://fonts.googleapis.com/css?family=Fugaz+One)
+@import url(https://fonts.googleapis.com/css?family=Old+Standard+TT:700)
 $screen-xs:   480px
 $screen-sm:   768px
 $screen-md:   992px
 $screen-lg:   1200px
 
 body
-  font-family: "Fugaz One" !important
+  font-family: "Old Standard TT" !important
 
 
 .loading-screen
@@ -20,21 +20,32 @@ body
   box-shadow: 0 3px 5px steelblue
   transition: 0.2s
 
-
 .book img
   border: 3px double lightgrey
-
 
 .book:hover
   box-shadow: 0 5px 5px steelblue
 
-
-#content
-  margin-top: 50px
-
-
 .book h4 
   font-size: 21px
+
+#content
+  margin-top: 25px
+
+.book-page
+  a, a:hover, a:active, a:focus
+    border: none
+    outline: none
+    color: black
+
+  img
+    border: 3px double lightgrey
+
+  .row
+    margin-top: 5px
+
+.search-button
+  margin-top: 10px
 
 @media (max-width: $screen-lg)
   .book h4

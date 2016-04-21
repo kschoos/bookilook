@@ -55,7 +55,7 @@ var App = React.createClass({
   render: function render() {
     return React.createElement(
       "div",
-      { className: "panel panel-default app" },
+      { className: "app" },
       React.createElement(Header, null),
       React.createElement(Body, { page: this.state.currentPage, singleBookData: this.state.bookdata })
     );
@@ -92,7 +92,7 @@ var Header = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-12 hidden-md-up" },
-          React.createElement(SideBar, null)
+          React.createElement(SideBar, { sidebarID: 0 })
         )
       )
     );
@@ -106,6 +106,16 @@ var Header = React.createClass({
 
 var Body = React.createClass({
   displayName: "Body",
+  getInitialState: function getInitialState() {
+    return {
+      lastSearch: ""
+    };
+  },
+  componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+    if (/searchBooks\//.test(nextProps.page)) {
+      this.setState({ lastSearch: nextProps.page });
+    }
+  },
   render: function render() {
     var _this = this;
 
@@ -130,7 +140,7 @@ var Body = React.createClass({
               return React.createElement(BookShelf, { books: _this.props.page });
               break;
             case /^Book$/.test(page):
-              return React.createElement(BookPage, { data: _this.props.singleBookData });
+              return React.createElement(BookPage, { data: _this.props.singleBookData, lastSearch: _this.state.lastSearch });
               break;
           }
         }()
@@ -138,7 +148,7 @@ var Body = React.createClass({
       React.createElement(
         "div",
         { id: "sidebar", className: "col-md-3 hidden-sm-down" },
-        React.createElement(SideBar, null)
+        React.createElement(SideBar, { sidebarID: 1 })
       )
     );
   }
@@ -164,7 +174,7 @@ var SideBar = React.createClass({
       React.createElement(SearchBar, null),
       React.createElement("hr", null),
       function () {
-        if (_this2.context.authed) return React.createElement(Logout, null);else return React.createElement(LoginForm, null);
+        if (_this2.context.authed) return React.createElement(Logout, null);else return React.createElement(LoginForm, { formID: _this2.props.sidebarID });
       }()
     );
   }
@@ -185,19 +195,7 @@ var Navbar = React.createClass({
         { className: "navbar-brand" },
         "Bookilook"
       ),
-      React.createElement(
-        "ul",
-        { className: "nav navbar-nav pull-xs-right" },
-        React.createElement(
-          "li",
-          { className: "home-btn nav-item" },
-          React.createElement(
-            "a",
-            null,
-            "Home"
-          )
-        )
-      )
+      React.createElement("ul", { className: "nav navbar-nav pull-xs-right" })
     );
   }
 });
@@ -210,6 +208,11 @@ var Navbar = React.createClass({
 
 var SearchBar = React.createClass({
   displayName: "SearchBar",
+  getInitialState: function getInitialState() {
+    return {
+      searchStatus: "All"
+    };
+  },
 
   contextTypes: {
     setPage: React.PropTypes.func
@@ -217,6 +220,9 @@ var SearchBar = React.createClass({
   search: function search(e) {
     e.preventDefault();
     this.context.setPage("searchBooks/" + e.target[0].value);
+  },
+  toggleSearch: function toggleSearch(value) {
+    if (value) this.setState({ searchStatus: "All" });else this.setState({ searchStatus: "Trade" });
   },
   render: function render() {
     return React.createElement(
@@ -235,9 +241,10 @@ var SearchBar = React.createClass({
           ),
           React.createElement("input", { type: "text", className: "form-control", name: "booksearch" })
         ),
+        React.createElement(SliderButton, { toggle: this.toggleSearch, right: "All", left: "Trade", size: 30, gap: 2 }),
         React.createElement(
           "button",
-          { className: "btn btn-default btn-block", type: "submit" },
+          { className: "btn btn-default btn-block search-button", type: "submit" },
           "Search!"
         )
       )
@@ -456,28 +463,24 @@ var LoginForm = React.createClass({
   contextTypes: {
     checkAuth: React.PropTypes.func
   },
-  componentDidMount: function componentDidMount() {
+  submitForm: function submitForm(e) {
+    e.preventDefault();
+    var data = {
+      email: e.target[0].value,
+      password: e.target[1].value
+    };
 
+    if (!data.email || !data.password) that.setMessage("Please provide a login and password.");
     var that = this;
 
-    $("#login-form-form").submit(function (e) {
-      e.preventDefault();
-      var data = {
-        email: e.target[0].value,
-        password: e.target[1].value
-      };
-
-      if (!data.email || !data.password) that.setMessage("Please provide a login and password.");
-
-      $.ajax({
-        url: "/login",
-        type: "post",
-        data: data,
-        success: function success(data) {
-          that.setMessage(data.message);
-          that.context.checkAuth();
-        }
-      });
+    $.ajax({
+      url: "/login",
+      type: "post",
+      data: data,
+      success: function success(data) {
+        that.setMessage(data.message);
+        that.context.checkAuth();
+      }
     });
   },
   setMessage: function setMessage(message) {
@@ -489,10 +492,10 @@ var LoginForm = React.createClass({
       null,
       React.createElement(
         "div",
-        { className: "login-form collapse", id: "login-form" },
+        { className: "login-form collapse", id: "login-form" + this.props.formID },
         React.createElement(
           "form",
-          { id: "login-form-form" },
+          { id: "login-form-form", onSubmit: this.submitForm },
           React.createElement(
             "div",
             { className: "form-group" },
@@ -534,7 +537,7 @@ var LoginForm = React.createClass({
       ),
       React.createElement(
         "button",
-        { className: "btn btn-primary btn-block login-collapse-button", type: "button", "data-toggle": "collapse", "data-target": "#login-form", "aria-expanded": "false", "aria-controls": "login-form" },
+        { className: "btn btn-primary btn-block login-collapse-button", type: "button", "data-toggle": "collapse", "data-target": "#login-form" + this.props.formID, "aria-expanded": "false", "aria-controls": "login-form" + this.props.formID },
         React.createElement("i", { className: "fa fa-sign-in", "aria-hidden": "true" })
       )
     );
@@ -768,19 +771,260 @@ var BookShelf = React.createClass({
 
 // BookPage
 // -----------------------------------------------
-//
+// Shows the details of the book when a book is clicked.
 
 var BookPage = React.createClass({
   displayName: "BookPage",
+  getInitialState: function getInitialState() {
+    console.log(this.props.data);
+    return {
+      isOwned: this.props.data.owned
+    };
+  },
+
+  contextTypes: {
+    setPage: React.PropTypes.func,
+    authed: React.PropTypes.bool
+  },
+  goToLastSearch: function goToLastSearch() {
+    console.log(this.props.lastSearch);
+    this.context.setPage(this.props.lastSearch);
+  },
   render: function render() {
+    console.log(this.context);
     return React.createElement(
       "div",
       { className: "book-page" },
-      React.createElement("img", { src: this.props.data.thumbnail }),
+      React.createElement(
+        "div",
+        { className: "book-page-header row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-12" },
+          React.createElement(
+            "button",
+            { className: "btn btn-warning btn-block", onClick: this.goToLastSearch },
+            React.createElement("i", { className: "fa fa-arrow-circle-left" }),
+            " Back to my search results."
+          )
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-4" },
+          React.createElement("img", { src: this.props.data.thumbnail })
+        ),
+        React.createElement(
+          "div",
+          { className: "col-xs-4" },
+          React.createElement(BookPageButtons, { owned: this.props.data.owned, bookID: this.props.data.id })
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "row" },
+        React.createElement(
+          "div",
+          { className: "col-xs-12" },
+          React.createElement(
+            "h2",
+            { className: "title" },
+            this.props.data.title
+          ),
+          React.createElement(
+            "h4",
+            null,
+            "Description:"
+          ),
+          React.createElement("p", { dangerouslySetInnerHTML: { __html: this.props.data.description || "Sorry, could not find any description..." } })
+        )
+      ),
+      React.createElement(
+        "div",
+        { className: "book-page-footer row" },
+        React.createElement("div", { className: "col-xs-12" })
+      )
+    );
+  }
+});
+
+// BookPageButtons
+// Buttons that are shown when logged in and on a Book Page
+//-----------------------------------------------------------
+
+var BookPageButtons = React.createClass({
+  displayName: "BookPageButtons",
+
+  contextTypes: {
+    authed: React.PropTypes.bool
+  },
+  getInitialState: function getInitialState() {
+    return {
+      owned: this.props.owned
+    };
+  },
+  componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
+    this.setState({ owned: nextProps.owned });
+  },
+  toggleOwn: function toggleOwn() {
+    this.setState({ owned: !this.state.owned });
+    var that = this;
+    $.ajax({
+      type: "post",
+      url: "/addBook/" + this.props.bookID
+    });
+  },
+  render: function render() {
+    switch (this.context.authed) {
+      case true:
+        switch (this.state.owned) {
+          case true:
+            return React.createElement(
+              "div",
+              { className: "bookPageButtons" },
+              React.createElement(
+                "div",
+                { className: "card card-inverse card-success text-xs-center" },
+                React.createElement(
+                  "div",
+                  { className: "card-block" },
+                  React.createElement(
+                    "p",
+                    { className: "card-text" },
+                    "I own this book."
+                  )
+                )
+              ),
+              React.createElement(
+                "button",
+                { className: "btn btn-default btn-block" },
+                "Offer Trade."
+              )
+            );
+          case false:
+            return React.createElement(
+              "div",
+              { className: "bookPageButtons" },
+              React.createElement(
+                "button",
+                { className: "btn btn-default btn-block", onClick: this.toggleOwn },
+                "I have this book!"
+              )
+            );
+        }
+
+      case false:
+        return React.createElement("p", null);
+    }
+  }
+});
+
+// Slider Button
+//----------------
+
+var SliderButton = React.createClass({
+  displayName: "SliderButton",
+  getInitialState: function getInitialState() {
+    return {
+      left: false
+    };
+  },
+  containerStyle: function containerStyle() {
+    return {
+      justifyContent: "space-around",
+      display: "inline-flex",
+      width: "100%",
+      outline: "none"
+    };
+  },
+  buttonContainerStyle: function buttonContainerStyle() {
+    var size = this.props.size;
+    return {
+      position: "relative",
+      height: size,
+      width: size * 2
+    };
+  },
+  leftPartStyle: function leftPartStyle() {
+    var size = this.props.size * 1;
+    return {
+      backgroundColor: "#337ab7",
+      borderTopLeftRadius: 50,
+      borderBottomLeftRadius: 50,
+      width: size,
+      height: size,
+      position: "absolute"
+    };
+  },
+  rightPartStyle: function rightPartStyle() {
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return {
+      backgroundColor: "#337ab7",
+      borderTopRightRadius: 50,
+      borderBottomRightRadius: 50,
+      width: size,
+      height: size,
+      position: "absolute",
+      left: size
+    };
+  },
+  buttonStyle: function buttonStyle() {
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return {
+      backgroundColor: "white",
+      position: "absolute",
+      zIndex: 1,
+      borderRadius: 50,
+      top: gap,
+      width: size - gap * 2,
+      height: size - gap * 2,
+      transition: "0.2s"
+    };
+  },
+  buttonLeftStyle: function buttonLeftStyle() {
+    var gap = this.props.gap * 1;
+    return {
+      left: gap
+    };
+  },
+  buttonRightStyle: function buttonRightStyle() {
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return {
+      left: size + gap
+    };
+  },
+  toggleButton: function toggleButton() {
+    var left = this.state.left;
+    this.props.toggle(left);
+    this.setState({ left: !left });
+  },
+  render: function render() {
+    return React.createElement(
+      "div",
+      { tabIndex: "0", role: "button", className: "slider-button", "aria-label": "Toggle between searching Everything and Trades-Only", style: this.containerStyle(), onClick: this.toggleButton },
       React.createElement(
         "div",
         null,
-        "This is some text."
+        this.props.left
+      ),
+      React.createElement(
+        "div",
+        { style: this.buttonContainerStyle() },
+        React.createElement("div", { style: this.leftPartStyle() }),
+        React.createElement("div", { style: this.rightPartStyle() }),
+        React.createElement("div", { style: $.extend({}, this.buttonStyle(), this.state.left ? this.buttonLeftStyle() : this.buttonRightStyle()) })
+      ),
+      React.createElement(
+        "div",
+        null,
+        this.props.right,
+        " "
       )
     );
   }

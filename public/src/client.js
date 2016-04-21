@@ -54,7 +54,7 @@ var App = React.createClass({
   },
   render(){
     return(
-      <div className="panel panel-default app">
+      <div className="app">
         <Header/>
         <Body page={ this.state.currentPage } singleBookData={this.state.bookdata} />
       </div>
@@ -82,7 +82,7 @@ var Header = React.createClass({
         </div>
         <div className="row">
           <div className="col-xs-12 hidden-md-up">
-            <SideBar/>
+            <SideBar sidebarID={ 0 }/>
           </div>
         </div>
       </div>
@@ -96,6 +96,16 @@ var Header = React.createClass({
 // - Sidebar
 
 var Body = React.createClass({
+  getInitialState(){
+    return{
+    lastSearch: ""
+    }
+  },
+  componentWillReceiveProps(nextProps){
+    if((/searchBooks\//).test(nextProps.page)){ 
+      this.setState({lastSearch: nextProps.page});
+    }
+  },
   render(){
     return(
       <div id="content" className="row">
@@ -115,14 +125,14 @@ var Body = React.createClass({
                   return <BookShelf books={ this.props.page }/>
                 break;  
               case (/^Book$/).test(page):
-                  return <BookPage data={ this.props.singleBookData }/>
+                  return <BookPage data={ this.props.singleBookData } lastSearch={ this.state.lastSearch }/>
                 break;
             }
           })()
           }
         </div>
         <div id="sidebar" className="col-md-3 hidden-sm-down">
-          <SideBar/> 
+          <SideBar sidebarID={ 1 }/> 
         </div>
       </div>
     )
@@ -145,7 +155,7 @@ var SideBar = React.createClass({
         <hr/>
         {(()=>{
           if(this.context.authed) return <Logout/>;
-          else return <LoginForm/>;
+          else return <LoginForm formID={ this.props.sidebarID }/>;
         })()
         }
       </div>
@@ -164,7 +174,6 @@ var Navbar = React.createClass({
       <nav className="navbar navbar-light bg-faded">
         <a className="navbar-brand">Bookilook</a>
         <ul className="nav navbar-nav pull-xs-right">
-          <li className="home-btn nav-item" ><a>Home</a></li>
         </ul>
       </nav>
     )
@@ -179,12 +188,21 @@ var Navbar = React.createClass({
 
 
 var SearchBar = React.createClass({
+  getInitialState(){
+    return{
+      searchStatus: "All" 
+    }
+  },
   contextTypes:{
     setPage: React.PropTypes.func 
   },
   search(e){
     e.preventDefault();
     this.context.setPage("searchBooks/"+e.target[0].value);
+  },
+  toggleSearch(value){
+    if(value) this.setState({searchStatus: "All"})
+    else this.setState({searchStatus: "Trade"})
   },
   render(){
     return(
@@ -194,7 +212,8 @@ var SearchBar = React.createClass({
             <label>Booksearch</label>
             <input type="text" className="form-control" name="booksearch"/>
           </div>
-          <button className="btn btn-default btn-block" type="submit">Search!</button>
+            <SliderButton toggle={ this.toggleSearch } right="All" left="Trade" size={ 30 } gap={ 2 }/>
+          <button className="btn btn-default btn-block search-button" type="submit">Search!</button>
         </form> 
       </div>
     )
@@ -347,30 +366,25 @@ var LoginForm = React.createClass({
   contextTypes: {
     checkAuth: React.PropTypes.func
   },
-  componentDidMount(){
+  submitForm(e){
+    e.preventDefault();
+    var data = {
+      email: e.target[0].value,
+      password: e.target[1].value
+    }
 
+    if(!data.email || !data.password) that.setMessage("Please provide a login and password.");
     var that = this;
 
-    $("#login-form-form").submit(function(e){
-      e.preventDefault();
-      var data = {
-        email: e.target[0].value,
-        password: e.target[1].value
+    $.ajax({
+      url: "/login",
+      type: "post",
+      data: data,
+      success(data){
+        that.setMessage(data.message);
+        that.context.checkAuth();
       }
-
-      if(!data.email || !data.password) that.setMessage("Please provide a login and password.");
-
-      $.ajax({
-        url: "/login",
-        type: "post",
-        data: data,
-        success(data){
-          that.setMessage(data.message);
-          that.context.checkAuth();
-        }
-      })
-    });
-
+    })
   },
   setMessage(message){
     this.setState({message: message});
@@ -378,8 +392,8 @@ var LoginForm = React.createClass({
   render(){
     return(
       <div>
-        <div className="login-form collapse" id="login-form">
-          <form id="login-form-form">
+        <div className="login-form collapse" id={ "login-form" + this.props.formID }>
+          <form id="login-form-form" onSubmit= { this.submitForm }>
             <div className="form-group">
               <label htmlFor="email">E-Mail / Username</label>
               <input type="text" className="form-control" name="email"/>
@@ -394,7 +408,7 @@ var LoginForm = React.createClass({
           <hr/>
           <p>Need an account? <a data-toggle="modal" data-target="#signupModal">Signup!</a></p>
         </div>
-        <button className="btn btn-primary btn-block login-collapse-button" type="button" data-toggle="collapse" data-target="#login-form" aria-expanded="false" aria-controls="login-form">
+        <button className="btn btn-primary btn-block login-collapse-button" type="button" data-toggle="collapse" data-target={ "#login-form"+ this.props.formID } aria-expanded="false" aria-controls= { "login-form" + this.props.formID } >
            <i className="fa fa-sign-in" aria-hidden="true"></i>
         </button>
       </div>
@@ -512,7 +526,7 @@ var Book = React.createClass({
   },
   openBook(){
     this.context.setPage("Book", this.props.data);
-    return false;
+    return false
   },
   render(){
     return(
@@ -581,14 +595,204 @@ var BookShelf = React.createClass({
 
 // BookPage
 // -----------------------------------------------
-//
+// Shows the details of the book when a book is clicked.
 
 var BookPage = React.createClass({
+  getInitialState(){
+    console.log(this.props.data);
+    return{
+      isOwned: this.props.data.owned
+    }
+  },
+  contextTypes:{
+    setPage: React.PropTypes.func,
+    authed: React.PropTypes.bool
+  },
+  goToLastSearch(){
+    console.log(this.props.lastSearch);
+    this.context.setPage(this.props.lastSearch)
+  },
   render(){
+    console.log(this.context);
     return(
       <div className="book-page">
-        <img src={ this.props.data.thumbnail}/>
-        <div>This is some text.</div>
+        <div className="book-page-header row">
+          <div className="col-xs-12">
+            <button className="btn btn-warning btn-block" onClick={ this.goToLastSearch }><i className="fa fa-arrow-circle-left"/> Back to my search results.</button>
+          </div>
+        </div>
+        <div className="row">
+          <div className="col-xs-4">
+            <img src={ this.props.data.thumbnail }/>
+          </div> 
+          <div className="col-xs-4">
+            <BookPageButtons owned={ this.props.data.owned } bookID={ this.props.data.id }/>
+          </div>
+        </div>
+        <div className="row">
+          <div className="col-xs-12">
+            <h2 className="title">{ this.props.data.title }</h2>
+            <h4>Description:</h4>
+            <p dangerouslySetInnerHTML={{ __html: this.props.data.description || "Sorry, could not find any description..."}}></p>
+          </div>
+        </div>
+        <div className="book-page-footer row">
+          <div className="col-xs-12">
+          </div>
+        </div>
+      </div>
+    )
+  }
+})
+
+
+// BookPageButtons
+// Buttons that are shown when logged in and on a Book Page
+//-----------------------------------------------------------
+
+var BookPageButtons = React.createClass({
+  contextTypes:{
+    authed: React.PropTypes.bool
+  },
+  getInitialState(){
+    return{
+      owned: this.props.owned
+    } 
+  },
+  componentWillReceiveProps(nextProps){
+    this.setState({owned: nextProps.owned})
+  },
+  toggleOwn(){
+    this.setState({owned: !this.state.owned}) 
+    var that = this;
+    $.ajax({
+      type: "post",
+      url: "/addBook/" + this.props.bookID,
+    })
+  },
+  render(){
+    switch(this.context.authed){
+      case true:
+        switch(this.state.owned){
+          case true:
+            return(
+              <div className="bookPageButtons">
+                <div className="card card-inverse card-success text-xs-center">
+                  <div className="card-block">
+                    <p className="card-text">
+                      I own this book.
+                    </p>
+                  </div>
+                </div>
+                <button className="btn btn-default btn-block">Offer Trade.</button>
+              </div>
+            )
+          case false:
+            return(
+              <div className="bookPageButtons">
+                <button className="btn btn-default btn-block" onClick={ this.toggleOwn }>I have this book!</button>
+              </div>
+            )
+        }
+
+      case false:
+        return (<p></p>);
+    }
+  }
+})
+
+
+// Slider Button
+//----------------
+
+var SliderButton = React.createClass({
+  getInitialState(){
+    return{
+    left: false
+    }
+  },
+  containerStyle(){
+    return{
+      justifyContent: "space-around",
+      display: "inline-flex",
+      width: "100%",
+      outline: "none"
+    }
+  },
+  buttonContainerStyle() {
+    var size = this.props.size;
+    return{
+      position: "relative",
+      height: size,
+      width: size * 2
+    }
+  },
+  leftPartStyle(){
+    var size = this.props.size * 1;
+    return{
+      backgroundColor: "#337ab7",
+      borderTopLeftRadius: 50,
+      borderBottomLeftRadius: 50,
+      width: size,
+      height: size,
+      position: "absolute"
+    }
+  },
+  rightPartStyle(){
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return{
+      backgroundColor: "#337ab7",
+      borderTopRightRadius: 50,
+      borderBottomRightRadius: 50,
+      width: size,
+      height: size,
+      position: "absolute",
+      left: size
+    }
+  },
+  buttonStyle(){
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return{
+      backgroundColor: "white",
+      position: "absolute",
+      zIndex: 1,
+      borderRadius: 50,
+      top: gap,
+      width:  size - (gap * 2),
+      height:  size - (gap * 2),
+      transition: "0.2s"
+    }
+  },
+  buttonLeftStyle(){
+    var gap = this.props.gap * 1;
+    return{
+      left: gap 
+    }
+  },
+  buttonRightStyle(){
+    var size = this.props.size * 1;
+    var gap = this.props.gap * 1;
+    return{
+      left:  size + gap
+    }
+  },
+  toggleButton(){
+    var left = this.state.left;
+    this.props.toggle(left);
+    this.setState({ left: !left})
+  },
+  render(){
+    return(
+      <div tabIndex="0" role="button" className="slider-button" aria-label="Toggle between searching Everything and Trades-Only" style={ this.containerStyle() } onClick={this.toggleButton}>
+        <div >{ this.props.left }</div>
+        <div style={ this.buttonContainerStyle() }>
+          <div style={ this.leftPartStyle() }></div>
+          <div style={ this.rightPartStyle() }></div>
+          <div style={ $.extend({}, this.buttonStyle(), ( this.state.left ? this.buttonLeftStyle() : this.buttonRightStyle() )) } ></div>
+        </div>
+        <div>{ this.props.right } </div>
       </div>
     )
   }

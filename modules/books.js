@@ -60,6 +60,8 @@ BookSearch.prototype.searchBooks = (queryString, callback) => {
   searchCache(queryString, callback);
 }
 
+// First we search the cache 
+//-----------------------------
 function searchCache(queryString, callback){
   SearchResult.findOne({query: queryString}, (err, searchresult) => {
     if(err) return callback(err);
@@ -68,19 +70,24 @@ function searchCache(queryString, callback){
   })
 }
 
+// If we dont find anything we search online
+//--------------------------------------------
 function searchOnline(queryString, callback){
   request(searchQueryURL + queryString + "&" + books_key, (err, response, body) => {
     body = JSON.parse(body);
     if(body.totalItems == 0) return callback(null, false, "No books were found"); // In case no books were found return false and a Message.
 
     var books = body.items.map((book) => {
-      var newBook = {};
+      var newBook = new Book();
       newBook.id = book.id;
       newBook.title = book.volumeInfo.title;
       newBook.subtitle = book.volumeInfo.subtitle || "";
       newBook.authors = book.volumeInfo.authors || "";
-      newBook.description = book.description || "";
+      newBook.description = book.description ||  (book.searchInfo && book.searchInfo.textSnippet ) || "";
       newBook.thumbnail = book.volumeInfo.imageLinks && book.volumeInfo.imageLinks.thumbnail || "https://books.google.at/googlebooks/images/no_cover_thumb.gif";
+      newBook.save((err)=>{
+        if(err) return callback(err);
+      })
       return newBook;
     })
 

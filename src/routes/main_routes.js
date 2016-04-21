@@ -39,9 +39,22 @@ module.exports = function(app, passport){
     if(err) return next(err);
     console.log(msg);
     if(!books){
-      res.send([]);
+      return res.send([]);
     }
-    res.send(books);
+
+    if(!req.isAuthenticated()) {
+      return res.send(books);
+    }
+
+    User.findById(req.user._id, (err, user)=>{
+      books = books.map((book) => {
+        book.owned = user.local.books.filter((id)=>{ 
+          if(id==book.id) return true;
+        }).length > 0
+        return book;
+      })
+      return res.send(books);
+    })
   }));
   
 
@@ -57,6 +70,35 @@ module.exports = function(app, passport){
       });
     })   
   })
+
+  
+  // Add a book to my collection.
+  //-------------------------------
+  app.post("/addBook/:book", isLoggedIn, (req, res, next) => {
+    User.findById(req.user._id, (err, user)=>{
+      Book.findOne({id: req.params.book}, (err, book)=>{
+        if(err) return next(err);
+        if(!book) return res.send({ok: false});
+
+        var ownsBook = user.local.books.filter((id)=>{ 
+          if(id==book.id) return true;
+        }).length > 0
+
+        if(!ownsBook) user.local.books.push(book.id);
+        else user.local.books = user.local.books.filter((id)=>{
+          if(id==book.id) return false;
+          else return true;
+        }) 
+
+        console.log(user.local.books);
+        user.save((err)=>{
+          if(err) return next(err);
+          res.end();
+        })
+      })
+    }) 
+  })
+
 
   // Account updating. If anything changes, it is set, otherwise it stays the way it was.
   // Email adress is verified by regex, password verification is required 

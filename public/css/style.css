@@ -1,6 +1,6 @@
-@import url(https://fonts.googleapis.com/css?family=Fugaz+One);
+@import url(https://fonts.googleapis.com/css?family=Old+Standard+TT:700);
 body {
-  font-family: "Fugaz One" !important; }
+  font-family: "Old Standard TT" !important; }
 
 .loading-screen {
   width: 100%;
@@ -19,11 +19,23 @@ body {
 .book:hover {
   box-shadow: 0 5px 5px steelblue; }
 
-#content {
-  margin-top: 50px; }
-
 .book h4 {
   font-size: 21px; }
+
+#content {
+  margin-top: 25px; }
+
+.book-page a, .book-page a:hover, .book-page a:active, .book-page a:focus {
+  border: none;
+  outline: none;
+  color: black; }
+.book-page img {
+  border: 3px double lightgrey; }
+.book-page .row {
+  margin-top: 5px; }
+
+.search-button {
+  margin-top: 10px; }
 
 @media (max-width: 1200px) {
   .book h4 {
