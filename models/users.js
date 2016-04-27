@@ -14,6 +14,7 @@ var User = mongoose.Schema({
     verificationHash: String,
     verified: Boolean,
     books: Array,
+    book_titles: [String],
     createdAt: {
       type: Date,
       expires: 900

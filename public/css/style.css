@@ -37,6 +37,9 @@ body {
 .search-button {
   margin-top: 10px; }
 
+.front-page {
+  text-align: center; }
+
 @media (max-width: 1200px) {
   .book h4 {
     font-size: 19px; } }

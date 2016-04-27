@@ -8,50 +8,44 @@ var SearchResult = require("../models/searchresults.js");
 
 var BookSearch = function(){};
 
-// Gets the important information for a certain title.
-BookSearch.prototype.getInfo = (bookIDs, callback) => {
+BookSearch.prototype.searchSingle = (id, callback) => {
+  Book.findOne({id: id}, (err, book) => {
+    if(book) return callback(null, book);
 
-  if(!bookIDs) return callback(null, []);
+    request(volumeQueryURL+id+"?"+books_key, (err, response, book) => {
+      book = JSON.parse(book);
+      var newBook = new Book();
 
-  bookIDs = Array.isArray(bookIDs) || [bookIDs];
-  var callbackCount = bookIDs.length;
-  var books = [];
-
-  bookIDs.forEach((id) => {
-    // First check if its in the DB already.
-    Book.findOne({id: id}, (err, book) => {
       if(err) return callback(err);
-      if(book) {
-        books.push(book);
-        callbackCount--;
-        if(callbackCount == 0) callback(null, books);
-        return;
-      }
 
-      request(volumeQueryURL+id+"?"+books_key, (err, response, book) =>{
-        console.log(response);
-        book = JSON.parse(book);
-        var newBook = new Book();
+      newBook.id = book.id;
+      newBook.title = book.volumeInfo.title;
+      newBook.subtitle = book.volumeInfo.subtitle;
+      newBook.authors = book.volumeInfo.authors;
+      newBook.description = book.description;
+      newBook.thumbnail = book.volumeInfo.imageLinks.thumbnail;
 
-        if(err) return callback(err);
-        console.log(book);
-
-        // We dont need everything.
-        newBook.id = book.id;
-        newBook.title = book.volumeInfo.title;
-        newBook.subtitle = book.volumeInfo.subtitle;
-        newBook.authors = book.volumeInfo.authors;
-        newBook.description = book.description;
-        newBook.thumbnail = book.volumeInfo.imageLinks.thumbnail;
-
-        newBook.save((err)=>{
-          if(err) return callback(err)
-            else books.push(newBook);
-            callbackCount--;
-            if(callbackCount == 0) callback(null, books);
-        })
+      newBook.save((err)=>{
+        if(err) return callback(err)
+        callback(null, newBook);
       })
-    }) 
+    })
+  }) 
+}
+
+BookSearch.prototype.searchMultiples = (ids, callback) => {
+  var callbackCount = ids.length;
+  var books = [];
+  ids.map((id) => {
+    BookSearch.prototype.searchSingle(id, (err, book) => {
+      if(err) callback(err); 
+
+      books.push(book);
+      callbackCount--;
+      if(callbackCount == 0){
+        callback(null, books);
+      }
+    })  
   })
 }
 

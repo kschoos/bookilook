@@ -6,6 +6,10 @@ $(document).ready(function(){
 })
 
 var Collapse = ReactBootstrap.Collapse;
+var FormGroup = ReactBootstrap.FormGroup;
+var ControlLabel = ReactBootstrap.ControlLabel;
+var FormControl = ReactBootstrap.FormControl;
+var Form = ReactBootstrap.Form;
 
 // App : Ties everything together.
 // -----------------------------------------------
@@ -37,10 +41,18 @@ var App = React.createClass({
     }
   },
   componentWillMount(){
+    var that = this;
+    this.setPage("frontPage");
     this.checkAuth();
+    window.onpopstate = (e) => {
+      if(e.state){
+        that.setPage(e.state.page, e.state.bookData || null, true);
+      }
+    }
   },
-  setPage(page, bookdata){
-    this.setState({currentPage: page, bookdata: bookdata}) 
+  setPage(page, bookdata, historyChange){
+    console.log(page);
+    this.setState({currentPage: page, bookdata: bookdata, historyChange: historyChange ? true : false}) 
   },
   checkAuth(){
     var that = this;
@@ -57,7 +69,7 @@ var App = React.createClass({
     return(
       <div className="app">
         <Header/>
-        <Body page={ this.state.currentPage } singleBookData={this.state.bookdata} />
+        <Body page={ this.state.currentPage } historyChange = { this.state.historyChange } singleBookData={this.state.bookdata} />
       </div>
     )
   }
@@ -97,15 +109,19 @@ var Header = React.createClass({
 // - Sidebar
 
 var Body = React.createClass({
+  contextTypes:{
+    setPage: React.PropTypes.func
+  },
   getInitialState(){
     return{
-    lastSearch: ""
+    lastPage: ""
     }
   },
   componentWillReceiveProps(nextProps){
-    if((/searchBooks\//).test(nextProps.page)){ 
-      this.setState({lastSearch: nextProps.page});
-    }
+    this.setState({lastPage: this.props.page})
+  },
+  goToLastPage(){
+    this.context.setPage(this.state.lastPage)
   },
   render(){
     return(
@@ -116,6 +132,9 @@ var Body = React.createClass({
           {(()=>{
             var page = this.props.page;
             switch(true){
+              case (/frontPage/).test(page):
+                  return <FrontPage/>
+                break;
               case (/AccountSettings/).test(page):
                   return <AccountSettings/>
                 break;
@@ -123,11 +142,11 @@ var Body = React.createClass({
                   return <BookShelf books="myBooks"/>
                 break;
               case (/searchBooks\/.*/).test(page):
-              case (/searchTrades\/.*/).test(page):
+              case (/searchTrades/).test(page):
                   return <BookShelf books={ this.props.page }/>
                 break;
               case (/^Book$/).test(page):
-                  return <BookPage data={ this.props.singleBookData } lastSearch={ this.state.lastSearch }/>
+                  return <BookPage data={ this.props.singleBookData } goToLastPage={ this.goToLastPage }/>
                 break;
             }
           })()
@@ -206,15 +225,18 @@ var SearchBar = React.createClass({
     e.preventDefault();
     switch(this.state.searchStatus){
       case "All":
-        this.context.setPage("searchBooks/"+e.target[0].value);
+        if(e.target[0].value)
+          this.context.setPage("searchBooks/"+e.target[0].value);
+          history.pushState({page: "searchBooks/"+e.target[0].value}, "Search for " + e.target[0].value);
         break;
       case "Trade":
-        this.context.setPage("searchTrades/");
+          this.context.setPage("searchTrades");
+          history.pushState({page: "searchTrades"}, "Browse Trades...");
         break;
     }
   },
   toggleSearch(value){
-    this.setState({collapseState: value});
+    this.setState({collapseState: value, searchStatus: value ? "All" : "Trade"});
   },
   render(){
     return(
@@ -247,9 +269,11 @@ var Logout = React.createClass({
   },
   showUser(){
     this.context.setPage("AccountSettings");
+    history.pushState({page: "AccountSettings"}, "Account Settings");
   },
   showMyBooks(){
     this.context.setPage("myBooks");
+    history.pushState({page: "myBooks"}, "My Books");
   },
   render(){
     return(
@@ -540,6 +564,7 @@ var Book = React.createClass({
   },
   openBook(){
     this.context.setPage("Book", this.props.data);
+    history.pushState({page: "Book", bookData: this.props.data}, "Book Page");
     return false
   },
   render(){
@@ -576,7 +601,6 @@ var BookShelf = React.createClass({
   },
   getBooks(route){
     var that = this;
-
     $.ajax({
       url: "/"+route,
       type: "post",
@@ -613,7 +637,6 @@ var BookShelf = React.createClass({
 
 var BookPage = React.createClass({
   getInitialState(){
-    console.log(this.props.data);
     return{
       isOwned: this.props.data.owned
     }
@@ -622,17 +645,12 @@ var BookPage = React.createClass({
     setPage: React.PropTypes.func,
     authed: React.PropTypes.bool
   },
-  goToLastSearch(){
-    console.log(this.props.lastSearch);
-    this.context.setPage(this.props.lastSearch)
-  },
   render(){
-    console.log(this.context);
     return(
       <div className="book-page">
         <div className="book-page-header row">
           <div className="col-xs-12">
-            <button className="btn btn-warning btn-block" onClick={ this.goToLastSearch }><i className="fa fa-arrow-circle-left"/> Back to my search results.</button>
+            <button className="btn btn-warning btn-block" onClick={ this.props.goToLastPage }><i className="fa fa-arrow-circle-left"/> Back to my search results.</button>
           </div>
         </div>
         <div className="row">
@@ -640,7 +658,7 @@ var BookPage = React.createClass({
             <img src={ this.props.data.thumbnail }/>
           </div> 
           <div className="col-xs-4">
-            <BookPageButtons owned={ this.props.data.owned } bookID={ this.props.data.id }/>
+            <BookPageButtons data={ this.props.data }/>
           </div>
         </div>
         <div className="row">
@@ -670,23 +688,59 @@ var BookPageButtons = React.createClass({
   },
   getInitialState(){
     return{
-      owned: this.props.owned
+      owned: this.props.data.owned
     } 
   },
   componentWillReceiveProps(nextProps){
-    this.setState({owned: nextProps.owned})
+    this.setState({owned: nextProps.data.owned})
   },
   toggleOwn(){
     this.setState({owned: !this.state.owned}) 
     var that = this;
     $.ajax({
       type: "post",
-      url: "/addBook/" + this.props.bookID,
+      url: "/addBook/" + this.props.data.id
+    })
+  },
+  offerBook(){
+    var that = this;
+    $.ajax({
+      type: "post",
+      url: "/offerBook/" + this.props.data.id
+    })
+  },
+  offerTrade(e){
+    var that = this;
+    var data = this.props.data;
+
+    data.theirBookTitle = ReactDOM.findDOMNode(that.refs.bookSelector).value;
+
+    $.ajax({
+      type: "post",
+      url: "/offerTrade",
+      data: data
     })
   },
   render(){
     switch(this.context.authed){
       case true:
+        if(this.props.data.trade) return(
+          <div className="bookPageButtons">
+            <form onSubmit={ this.offerTrade }>
+              <FormGroup>
+                <ControlLabel>Offer:</ControlLabel>
+                <FormControl ref="bookSelector" componentClass="select">
+                {
+                  this.props.data.mybooks.map((book, i) => {
+                    return <option key={ i } value={ book }>{ book }</option>
+                  })
+                }
+                </FormControl>
+                <button className="btn btn-default btn-block" type="submit" >Offer Trade</button>
+              </FormGroup>
+            </form>
+          </div>
+        )
         switch(this.state.owned){
           case true:
             return(
@@ -698,7 +752,7 @@ var BookPageButtons = React.createClass({
                     </p>
                   </div>
                 </div>
-                <button className="btn btn-default btn-block">Offer Trade.</button>
+                <button className="btn btn-default btn-block" onClick={ this.offerBook }>Offer Trade.</button>
               </div>
             )
           case false:
@@ -810,4 +864,23 @@ var SliderButton = React.createClass({
       </div>
     )
   }
+})
+
+var FrontPage = React.createClass({
+  render(){
+    return(
+      <div className="front-page row">
+        <i className="fa fa-search fa-flip-horizontal" aria-hidden="true"></i>
+        <i className="fa fa-search" aria-hidden="true"></i>
+        <h1>Bookilook</h1>
+        <ol>
+          <li>Search for a book</li>
+          <li>Tell us that you own it</li>
+          <li>Browse for trades</li>
+          <li>Send Trade offers</li>
+          <li>Enjoy</li>
+        </ol>
+      </div>
+    )
+  } 
 })

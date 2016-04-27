@@ -17,20 +17,21 @@ var transporter = nodemailer.createTransport(smtpconfig);
 
 var emailConfiguration = {
   from: "donotrespond@skusku.org",
-  subject: "Bookilook email verification"
+  subject: "Bookilook trade offer!"
 };
 
-var templateDir = "templates/verification-email";
+var Mails = function Mails() {};
+
+var templateDir = "templates/trade-mail";
 var mail = new EmailTemplate(templateDir);
 
-module.exports = function (TO, hash, callback) {
-  // TO can either be a comma seperated list of emails as a string, or an array, or a single email adress.
-  if (Array.isArray(TO)) TO = TO.join(",");
-
+Mails.prototype.sendTradeOffer = function (theirBookTitle, TO, myBookTitle, tradeOfferIndex, callback) {
   emailConfiguration.to = TO;
-  mail.render({ hash: hash }, function (err, result) {
+  mail.render({ theirBookTitle: theirBookTitle, myBookTitle: myBookTitle, tradeID: tradeOfferIndex }, function (err, result) {
     if (err) throw err;
     emailConfiguration.html = result.html;
     transporter.sendMail(emailConfiguration, callback);
   });
 };
+
+module.exports = new Mails();

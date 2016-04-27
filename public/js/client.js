@@ -5,6 +5,10 @@ $(document).ready(function () {
 });
 
 var Collapse = ReactBootstrap.Collapse;
+var FormGroup = ReactBootstrap.FormGroup;
+var ControlLabel = ReactBootstrap.ControlLabel;
+var FormControl = ReactBootstrap.FormControl;
+var Form = ReactBootstrap.Form;
 
 // App : Ties everything together.
 // -----------------------------------------------
@@ -38,10 +42,18 @@ var App = React.createClass({
     };
   },
   componentWillMount: function componentWillMount() {
+    var that = this;
+    this.setPage("frontPage");
     this.checkAuth();
+    window.onpopstate = function (e) {
+      if (e.state) {
+        that.setPage(e.state.page, e.state.bookData || null, true);
+      }
+    };
   },
-  setPage: function setPage(page, bookdata) {
-    this.setState({ currentPage: page, bookdata: bookdata });
+  setPage: function setPage(page, bookdata, historyChange) {
+    console.log(page);
+    this.setState({ currentPage: page, bookdata: bookdata, historyChange: historyChange ? true : false });
   },
   checkAuth: function checkAuth() {
     var that = this;
@@ -59,7 +71,7 @@ var App = React.createClass({
       "div",
       { className: "app" },
       React.createElement(Header, null),
-      React.createElement(Body, { page: this.state.currentPage, singleBookData: this.state.bookdata })
+      React.createElement(Body, { page: this.state.currentPage, historyChange: this.state.historyChange, singleBookData: this.state.bookdata })
     );
   }
 });
@@ -108,15 +120,20 @@ var Header = React.createClass({
 
 var Body = React.createClass({
   displayName: "Body",
+
+  contextTypes: {
+    setPage: React.PropTypes.func
+  },
   getInitialState: function getInitialState() {
     return {
-      lastSearch: ""
+      lastPage: ""
     };
   },
   componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
-    if (/searchBooks\//.test(nextProps.page)) {
-      this.setState({ lastSearch: nextProps.page });
-    }
+    this.setState({ lastPage: this.props.page });
+  },
+  goToLastPage: function goToLastPage() {
+    this.context.setPage(this.state.lastPage);
   },
   render: function render() {
     var _this = this;
@@ -132,6 +149,9 @@ var Body = React.createClass({
         function () {
           var page = _this.props.page;
           switch (true) {
+            case /frontPage/.test(page):
+              return React.createElement(FrontPage, null);
+              break;
             case /AccountSettings/.test(page):
               return React.createElement(AccountSettings, null);
               break;
@@ -139,11 +159,11 @@ var Body = React.createClass({
               return React.createElement(BookShelf, { books: "myBooks" });
               break;
             case /searchBooks\/.*/.test(page):
-            case /searchTrades\/.*/.test(page):
+            case /searchTrades/.test(page):
               return React.createElement(BookShelf, { books: _this.props.page });
               break;
             case /^Book$/.test(page):
-              return React.createElement(BookPage, { data: _this.props.singleBookData, lastSearch: _this.state.lastSearch });
+              return React.createElement(BookPage, { data: _this.props.singleBookData, goToLastPage: _this.goToLastPage });
               break;
           }
         }()
@@ -228,15 +248,17 @@ var SearchBar = React.createClass({
     e.preventDefault();
     switch (this.state.searchStatus) {
       case "All":
-        this.context.setPage("searchBooks/" + e.target[0].value);
+        if (e.target[0].value) this.context.setPage("searchBooks/" + e.target[0].value);
+        history.pushState({ page: "searchBooks/" + e.target[0].value }, "Search for " + e.target[0].value);
         break;
       case "Trade":
-        this.context.setPage("searchTrades/");
+        this.context.setPage("searchTrades");
+        history.pushState({ page: "searchTrades" }, "Browse Trades...");
         break;
     }
   },
   toggleSearch: function toggleSearch(value) {
-    this.setState({ collapseState: value });
+    this.setState({ collapseState: value, searchStatus: value ? "All" : "Trade" });
   },
   render: function render() {
     return React.createElement(
@@ -285,9 +307,11 @@ var Logout = React.createClass({
   },
   showUser: function showUser() {
     this.context.setPage("AccountSettings");
+    history.pushState({ page: "AccountSettings" }, "Account Settings");
   },
   showMyBooks: function showMyBooks() {
     this.context.setPage("myBooks");
+    history.pushState({ page: "myBooks" }, "My Books");
   },
   render: function render() {
     return React.createElement(
@@ -711,6 +735,7 @@ var Book = React.createClass({
   },
   openBook: function openBook() {
     this.context.setPage("Book", this.props.data);
+    history.pushState({ page: "Book", bookData: this.props.data }, "Book Page");
     return false;
   },
   render: function render() {
@@ -756,7 +781,6 @@ var BookShelf = React.createClass({
   },
   getBooks: function getBooks(route) {
     var that = this;
-
     $.ajax({
       url: "/" + route,
       type: "post",
@@ -794,7 +818,6 @@ var BookShelf = React.createClass({
 var BookPage = React.createClass({
   displayName: "BookPage",
   getInitialState: function getInitialState() {
-    console.log(this.props.data);
     return {
       isOwned: this.props.data.owned
     };
@@ -804,12 +827,7 @@ var BookPage = React.createClass({
     setPage: React.PropTypes.func,
     authed: React.PropTypes.bool
   },
-  goToLastSearch: function goToLastSearch() {
-    console.log(this.props.lastSearch);
-    this.context.setPage(this.props.lastSearch);
-  },
   render: function render() {
-    console.log(this.context);
     return React.createElement(
       "div",
       { className: "book-page" },
@@ -821,7 +839,7 @@ var BookPage = React.createClass({
           { className: "col-xs-12" },
           React.createElement(
             "button",
-            { className: "btn btn-warning btn-block", onClick: this.goToLastSearch },
+            { className: "btn btn-warning btn-block", onClick: this.props.goToLastPage },
             React.createElement("i", { className: "fa fa-arrow-circle-left" }),
             " Back to my search results."
           )
@@ -838,7 +856,7 @@ var BookPage = React.createClass({
         React.createElement(
           "div",
           { className: "col-xs-4" },
-          React.createElement(BookPageButtons, { owned: this.props.data.owned, bookID: this.props.data.id })
+          React.createElement(BookPageButtons, { data: this.props.data })
         )
       ),
       React.createElement(
@@ -881,23 +899,75 @@ var BookPageButtons = React.createClass({
   },
   getInitialState: function getInitialState() {
     return {
-      owned: this.props.owned
+      owned: this.props.data.owned
     };
   },
   componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
-    this.setState({ owned: nextProps.owned });
+    this.setState({ owned: nextProps.data.owned });
   },
   toggleOwn: function toggleOwn() {
     this.setState({ owned: !this.state.owned });
     var that = this;
     $.ajax({
       type: "post",
-      url: "/addBook/" + this.props.bookID
+      url: "/addBook/" + this.props.data.id
+    });
+  },
+  offerBook: function offerBook() {
+    var that = this;
+    $.ajax({
+      type: "post",
+      url: "/offerBook/" + this.props.data.id
+    });
+  },
+  offerTrade: function offerTrade(e) {
+    var that = this;
+    var data = this.props.data;
+
+    data.theirBookTitle = ReactDOM.findDOMNode(that.refs.bookSelector).value;
+
+    $.ajax({
+      type: "post",
+      url: "/offerTrade",
+      data: data
     });
   },
   render: function render() {
     switch (this.context.authed) {
       case true:
+        if (this.props.data.trade) return React.createElement(
+          "div",
+          { className: "bookPageButtons" },
+          React.createElement(
+            "form",
+            { onSubmit: this.offerTrade },
+            React.createElement(
+              FormGroup,
+              null,
+              React.createElement(
+                ControlLabel,
+                null,
+                "Offer:"
+              ),
+              React.createElement(
+                FormControl,
+                { ref: "bookSelector", componentClass: "select" },
+                this.props.data.mybooks.map(function (book, i) {
+                  return React.createElement(
+                    "option",
+                    { key: i, value: book },
+                    book
+                  );
+                })
+              ),
+              React.createElement(
+                "button",
+                { className: "btn btn-default btn-block", type: "submit" },
+                "Offer Trade"
+              )
+            )
+          )
+        );
         switch (this.state.owned) {
           case true:
             return React.createElement(
@@ -918,7 +988,7 @@ var BookPageButtons = React.createClass({
               ),
               React.createElement(
                 "button",
-                { className: "btn btn-default btn-block" },
+                { className: "btn btn-default btn-block", onClick: this.offerBook },
                 "Offer Trade."
               )
             );
@@ -1043,6 +1113,52 @@ var SliderButton = React.createClass({
         null,
         this.props.right,
         " "
+      )
+    );
+  }
+});
+
+var FrontPage = React.createClass({
+  displayName: "FrontPage",
+  render: function render() {
+    return React.createElement(
+      "div",
+      { className: "front-page row" },
+      React.createElement("i", { className: "fa fa-search fa-flip-horizontal", "aria-hidden": "true" }),
+      React.createElement("i", { className: "fa fa-search", "aria-hidden": "true" }),
+      React.createElement(
+        "h1",
+        null,
+        "Bookilook"
+      ),
+      React.createElement(
+        "ol",
+        null,
+        React.createElement(
+          "li",
+          null,
+          "Search for a book"
+        ),
+        React.createElement(
+          "li",
+          null,
+          "Tell us that you own it"
+        ),
+        React.createElement(
+          "li",
+          null,
+          "Browse for trades"
+        ),
+        React.createElement(
+          "li",
+          null,
+          "Send Trade offers"
+        ),
+        React.createElement(
+          "li",
+          null,
+          "Enjoy"
+        )
       )
     );
   }
